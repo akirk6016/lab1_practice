@@ -1,0 +1,114 @@
+---
+title: "lab1_practice"
+author: "Abigail Kirk"
+format: 
+  html:
+      code_fold: true 
+      toc: true
+execute: 
+  echo: true 
+  message: false 
+  warning: false 
+editor: visual
+---
+
+Attach tidyverse and gapminder package
+
+For each year and continent, summarize the average per-capita GDP across all countries in the continent. Hint: don't just average the country-level values - need to consider country populations
+
+```{r}
+library(tidyverse)
+library(gapminder)
+library(ggplot2)
+```
+
+
+```{r}
+data("gapminder")
+
+gap_clean <- gapminder %>% janitor::clean_names()
+### it is a weighted average!
+
+continent_mean_gdp <- gapminder %>%
+  group_by(year, continent) %>%
+  summarize(mean_gdp = sum(gdpPercap * pop) / sum(pop),
+            ### let's log transform the data in our analysis
+            log_mean_gdp = log(mean_gdp)) %>%
+  ungroup()
+
+```
+
+
+plot the continent-level GDP values in a scatter plot. Bonus, plot the country level values as well, with a low alpha to fade them into the background
+
+```{r}
+
+gap_plot_df <- gap_clean %>% 
+  rename(mean_gdp = gdp_percap)
+
+
+gdp_plot <- ggplot(continent_mean_gdp, aes(x= year, y = mean_gdp, color = continent)) + geom_line()+ 
+  labs(x= "Year", y= "Mean GDP") +  
+  ggtitle("Average GDP by Continent") + theme_bw()  +  geom_point(data = gap_clean, aes(y = gdp_percap), alpha = 0.3)
+
+gdp_plot
+
+```
+
+```{r}
+gdp_plot_2 <- ggplot(continent_mean_gdp, aes(x= year, y = mean_gdp, color = continent)) + geom_line()+ 
+  labs(x= "Year", y= "Mean GDP") +  
+  ggtitle("Average GDP by Continent")  +    
+  geom_jitter(data = gapminder, aes(y = gdpPercap), alpha = .2) +
+  theme_minimal() 
+
+gdp_plot_2
+
+## why does jitter work better than point?
+
+
+
+```
+
+
+redo the scatterplot, but this time, log transform the GDP data either in the df using 'mutate' or on the plot with with scale_y_log10()
+
+```{r}
+
+gdp_plot_log <- ggplot(continent_mean_gdp, aes(x= year, y = log10(mean_gdp), color = continent)) + geom_line()+ 
+  labs(x= "Year", y= "Log Mean GDP") +  
+  ggtitle("Average GDP by Continent")  +    
+  geom_jitter(data = gapminder, aes(y = log10(gdpPercap)), alpha = .2) +
+  theme_minimal() 
+
+gdp_plot_log
+
+```
+
+Based on the plots, choose either the regular or log transformed data, and use a linear regression to estimate annual change in per capita GDP \*\* OR log(per capita GDP) accounting for continent
+
+```{r}
+annual_gdp_model <- lm(log10(mean_gdp) ~ year + continent, data = continent_mean_gdp)
+
+annual_gdp_model
+
+summary(annual_gdp_model)
+
+log_gdp_coef <- coefficients(annual_gdp_model)
+
+log_gdp_coef
+```
+
+
+write a sentence or two describing the trends in the plots write a sentence or two to explain the coefficients in the linear model, including statistical significance. which continent is the "reference" continent? why might that be? what do the coefficients on each continent represent? Do they make intuitive sense? Does a linear model seem like a good way to approach these data? why or why not?
+
+when done, render your quarto doc, then stage, commit, and pushback to Github. good you did it
+
+
+
+
+
+
+
+
+
